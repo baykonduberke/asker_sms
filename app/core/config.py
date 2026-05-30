@@ -6,4 +6,9 @@ class Settings(BaseSettings):
     app_name: str = "FastAPI"
     app_env: str = "development"
 
+    openrouter_api_key: str
+    openrouter_model: str
+
+    postgres_url: str
+
 settings = Settings()
