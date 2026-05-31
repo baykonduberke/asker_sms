@@ -29,11 +29,12 @@ def build_openrouter_messages(state: AgentState) -> AgentState:
         SystemMessage(content=SYSTEM_PROMPT),
         *state.get("messages", []),
     ]
-    payload = [
-        {"role": ROLE_BY_MESSAGE_TYPE[message.type], "content": message.content}
-        for message in conversation
-        if message.type in ROLE_BY_MESSAGE_TYPE
-    ]
+    payload = []
+    for message in conversation:
+        role = ROLE_BY_MESSAGE_TYPE.get(message.type)
+        if role is None:
+            continue
+        payload.append({"role": role, "content": message.content})
     return {"openrouter_response": payload}
 
 
