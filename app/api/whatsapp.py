@@ -7,6 +7,8 @@ from starlette.concurrency import run_in_threadpool
 
 router = APIRouter(prefix="/whatsapp", tags=["whatsapp"])
 
+FALLBACK_REPLY = "Su an cevap veremiyorum, lutfen birazdan tekrar dene."
+
 
 def twiml_response(message: str = "") -> Response:
     """Cevabi Twilio'nun bekledigi TwiML (XML) formatina cevirir."""
@@ -38,11 +40,17 @@ async def whatsapp_inbound(request: Request) -> Response:
 
     # 3) Mesaji yapay zeka grafigine ver, cevabini al.
     #    graph.invoke yavas/bloklayici oldugu icin ayri thread'de calistiririz.
+    #    Hata olursa Twilio'ya 500 degil, kullaniciya kisa bir fallback doneriz.
     graph = request.app.state.agent_graph
-    result = await run_in_threadpool(
-        graph.invoke,
-        {"user_message": message},
-        {"configurable": {"thread_id": sender}},  # ayni gonderen = ayni konusma hafizasi
-    )
+    try:
+        result = await run_in_threadpool(
+            graph.invoke,
+            {"user_message": message},
+            {"configurable": {"thread_id": sender}},  # ayni gonderen = ayni konusma hafizasi
+        )
+        reply = result.get("agent_message") or FALLBACK_REPLY
+    except Exception:
+        reply = FALLBACK_REPLY
+
     # 4) Cevabi TwiML olarak Twilio'ya don.
-    return twiml_response(result["agent_message"])
+    return twiml_response(reply)
